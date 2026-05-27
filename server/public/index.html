@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante Digital - RabbitMQ</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f4f4;
+    color: #222;
+    margin: 0;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Cabeçalho */
+  header {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  header .subtitulo {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+  }
+  .status-rabbit {
+    font-size: 12px;
+    background: #e8f4e8;
+    border: 1px solid #4a8;
+    padding: 5px 10px;
+  }
+  .status-rabbit.off {
+    background: #f8e0e0;
+    border-color: #c44;
+  }
+
+  /* Linha de 3 colunas */
+  .colunas {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+  }
+  .card h2 {
+    margin: 0 0 10px 0;
+    font-size: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card h2 .tipo {
+    font-size: 11px;
+    font-weight: normal;
+    color: #888;
+  }
+
+  /* Status do consumer */
+  .status {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border: 1px solid;
+    font-weight: normal;
+  }
+  .status.online { background: #e8f4e8; border-color: #4a8; color: #285; }
+  .status.offline { background: #f8e0e0; border-color: #c44; color: #933; }
+
+  /* Formulário */
+  label {
+    display: block;
+    font-size: 12px;
+    margin: 8px 0 3px 0;
+    color: #444;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #aaa;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+  }
+  .linha-dupla {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  button {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px;
+    background: #e0e0e0;
+    border: 1px solid #888;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+  }
+  button:hover:not(:disabled) {
+    background: #d0d0d0;
+  }
+  button:disabled {
+    color: #999;
+    cursor: not-allowed;
+  }
+  button.principal {
+    background: #d8e8f8;
+    border-color: #5878a0;
+  }
+  button.principal:hover:not(:disabled) {
+    background: #c0d8f0;
+  }
+
+  /* Tabela de info do consumer */
+  .info-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .info-tabela td {
+    padding: 4px 0;
+    border-bottom: 1px dotted #ddd;
+  }
+  .info-tabela td:last-child {
+    text-align: right;
+    font-weight: bold;
+  }
+  .processando {
+    margin-top: 10px;
+    padding: 6px 8px;
+    background: #fff8e0;
+    border: 1px solid #e0c060;
+    font-size: 12px;
+  }
+
+  .dica {
+    margin-top: 10px;
+    background: #f8f8f8;
+    border: 1px dashed #bbb;
+    padding: 8px;
+    font-size: 11px;
+    color: #555;
+  }
+  .dica code {
+    background: #eee;
+    padding: 1px 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #333;
+  }
+
+  /* Filas */
+  .filas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  .fila {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+  }
+  .fila-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .fila-nome {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  .fila-contagem {
+    font-size: 22px;
+    font-weight: bold;
+    color: #b85;
+  }
+  .fila-contagem.zerada { color: #999; }
+  .fila-legenda {
+    font-size: 11px;
+    color: #777;
+    text-align: right;
+  }
+  .fila-vazia {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    padding: 20px 0;
+    font-style: italic;
+  }
+
+  /* Logs */
+  .logs-box {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+  }
+  .logs-box h2 {
+    margin: 0 0 10px 0;
+    font-size: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .logs-box h2 button {
+    width: auto;
+    margin-top: 0;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+  .logs-stream {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 12px;
+    height: 220px;
+    overflow-y: auto;
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    border: 1px solid #333;
+  }
+  .log-linha {
+    display: grid;
+    grid-template-columns: 70px 90px 1fr;
+    gap: 10px;
+  }
+  .log-linha .hora { color: #888; }
+  .log-linha .tag { font-weight: bold; }
+  .log-linha .tag.producer { color: #6cb6ff; }
+  .log-linha .tag.kitchen { color: #f0a040; }
+  .log-linha .tag.payment { color: #7ec07e; }
+  .log-linha .tag.system { color: #999; }
+  .log-linha .tag.error { color: #ff7070; }
+  .log-vazio {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 30px 0;
+  }
+
+  /* Rodapé */
+  footer {
+    margin-top: 15px;
+    padding: 10px 15px;
+    background: #fff;
+    border: 1px solid #ccc;
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+  }
+  footer a { color: #2a5b9a; }
+
+  @media (max-width: 900px) {
+    .colunas, .filas { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>Restaurante Digital - RabbitMQ</h1>
+      <div class="subtitulo">Trabalho prático: mensageria e desacoplamento de serviços</div>
+    </div>
+    <div class="status-rabbit" id="status-rabbit">
+      RabbitMQ: <strong id="conn-value">conectando...</strong>
+    </div>
+  </header>
+
+  <div class="colunas">
+
+    <!-- CLIENTE -->
+    <div class="card">
+      <h2>
+        App do Cliente
+        <span class="tipo">Producer</span>
+      </h2>
+
+      <label>Item</label>
+      <input id="inp-item" type="text" value="Hambúrguer Duplo">
+
+      <div class="linha-dupla">
+        <div>
+          <label>Mesa</label>
+          <input id="inp-mesa" type="number" value="5">
+        </div>
+        <div>
+          <label>Valor (R$)</label>
+          <input id="inp-valor" type="number" step="0.01" value="32.90">
+        </div>
+      </div>
+
+      <button class="principal" id="btn-enviar" onclick="enviarPedido()">
+        Enviar pedido
+      </button>
+      <button id="btn-teste" onclick="enviarTeste()">
+        Enviar 5 pedidos de teste
+      </button>
+    </div>
+
+    <!-- COZINHA -->
+    <div class="card">
+      <h2>
+        Cozinha
+        <span class="status offline" id="badge-cozinha">offline</span>
+      </h2>
+
+      <table class="info-tabela">
+        <tr>
+          <td>Tipo</td>
+          <td>Consumer (fila_cozinha)</td>
+        </tr>
+        <tr>
+          <td>Consumers ativos</td>
+          <td id="info-cozinha-consumers">0</td>
+        </tr>
+        <tr>
+          <td>Processados</td>
+          <td id="info-cozinha-count">0</td>
+        </tr>
+        <tr>
+          <td>Tempo de preparo</td>
+          <td>~2.5s</td>
+        </tr>
+      </table>
+
+      <div class="processando" id="info-cozinha-now" style="display:none;">
+        Preparando pedido <strong id="info-cozinha-now-id">#000</strong>...
+      </div>
+
+      <div class="dica">
+        Para ligar/desligar no Docker:<br>
+        <code>docker compose stop cozinha</code><br>
+        <code>docker compose start cozinha</code>
+      </div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div class="card">
+      <h2>
+        Financeiro
+        <span class="status offline" id="badge-financeiro">offline</span>
+      </h2>
+
+      <table class="info-tabela">
+        <tr>
+          <td>Tipo</td>
+          <td>Consumer (fila_pagamento)</td>
+        </tr>
+        <tr>
+          <td>Consumers ativos</td>
+          <td id="info-financeiro-consumers">0</td>
+        </tr>
+        <tr>
+          <td>Pagamentos OK</td>
+          <td id="info-financeiro-count">0</td>
+        </tr>
+        <tr>
+          <td>Tempo de cobrança</td>
+          <td>~1.5s</td>
+        </tr>
+      </table>
+
+      <div class="processando" id="info-financeiro-now" style="display:none;">
+        Cobrando pedido <strong id="info-financeiro-now-id">#000</strong>...
+      </div>
+
+      <div class="dica">
+        Para ligar/desligar no Docker:<br>
+        <code>docker compose stop financeiro</code><br>
+        <code>docker compose start financeiro</code>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="filas">
+
+    <div class="fila">
+      <div class="fila-cabecalho">
+        <span class="fila-nome">fila_cozinha</span>
+        <div>
+          <div class="fila-contagem zerada" id="count-cozinha">0</div>
+          <div class="fila-legenda">mensagens na fila</div>
+        </div>
+      </div>
+      <div class="fila-vazia">Aguardando pedidos do cliente</div>
+    </div>
+
+    <div class="fila">
+      <div class="fila-cabecalho">
+        <span class="fila-nome">fila_pagamento</span>
+        <div>
+          <div class="fila-contagem zerada" id="count-pagamento">0</div>
+          <div class="fila-legenda">mensagens na fila</div>
+        </div>
+      </div>
+      <div class="fila-vazia">Aguardando pedidos prontos</div>
+    </div>
+
+  </div>
+
+  <div class="logs-box">
+    <h2>
+      Logs em tempo real
+      <button onclick="limparLogs()">Limpar</button>
+    </h2>
+    <div class="logs-stream" id="log-stream">
+      <div class="log-vazio">Aguardando eventos do RabbitMQ...</div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Painel do RabbitMQ: <a href="http://localhost:15672" target="_blank">http://localhost:15672</a></span>
+    <span>Login: guest / guest</span>
+  </footer>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const contadores = { cozinha: 0, financeiro: 0 };
+
+  socket.on('connect', () => {
+    document.getElementById('status-rabbit').classList.remove('off');
+    document.getElementById('conn-value').textContent = 'conectado';
+    log({ nivel: 'system', mensagem: 'Conectado ao servidor (Socket.IO)' });
+  });
+
+  socket.on('disconnect', () => {
+    document.getElementById('status-rabbit').classList.add('off');
+    document.getElementById('conn-value').textContent = 'desconectado';
+    log({ nivel: 'error', mensagem: 'Conexao com o servidor perdida' });
+  });
+
+  socket.on('rabbitmq:status', payload => {
+    if (!payload.conectado) {
+      log({ nivel: 'error', mensagem: 'RabbitMQ ainda nao esta conectado' });
+    }
+  });
+
+  socket.on('log', entry => log(entry));
+
+  socket.on('cozinha:recebido', pedido => {
+    document.getElementById('info-cozinha-now').style.display = 'block';
+    document.getElementById('info-cozinha-now-id').textContent = '#' + pedido.pedido_id;
+  });
+
+  socket.on('cozinha:pronto', pedido => {
+    contadores.cozinha++;
+    document.getElementById('info-cozinha-count').textContent = contadores.cozinha;
+    document.getElementById('info-cozinha-now').style.display = 'none';
+  });
+
+  socket.on('pagamento:recebido', pedido => {
+    document.getElementById('info-financeiro-now').style.display = 'block';
+    document.getElementById('info-financeiro-now-id').textContent = '#' + pedido.pedido_id;
+  });
+
+  socket.on('pagamento:aprovado', pedido => {
+    contadores.financeiro++;
+    document.getElementById('info-financeiro-count').textContent = contadores.financeiro;
+    document.getElementById('info-financeiro-now').style.display = 'none';
+  });
+
+  socket.on('status:filas', payload => {
+    const cz = payload.cozinha;
+    const countCz = document.getElementById('count-cozinha');
+    countCz.textContent = cz.mensagens;
+    countCz.classList.toggle('zerada', cz.mensagens === 0);
+    document.getElementById('info-cozinha-consumers').textContent = cz.consumers;
+    atualizarBadge('cozinha', cz.consumers > 0);
+
+    const pg = payload.pagamento;
+    const countPg = document.getElementById('count-pagamento');
+    countPg.textContent = pg.mensagens;
+    countPg.classList.toggle('zerada', pg.mensagens === 0);
+    document.getElementById('info-financeiro-consumers').textContent = pg.consumers;
+    atualizarBadge('financeiro', pg.consumers > 0);
+  });
+
+  function atualizarBadge(qual, online) {
+    const badge = document.getElementById('badge-' + qual);
+    if (online) {
+      badge.className = 'status online';
+      badge.textContent = 'online';
+    } else {
+      badge.className = 'status offline';
+      badge.textContent = 'offline';
+    }
+  }
+
+  async function enviarPedido() {
+    const item = document.getElementById('inp-item').value || 'Item sem nome';
+    const mesa = parseInt(document.getElementById('inp-mesa').value) || 1;
+    const valor = parseFloat(document.getElementById('inp-valor').value) || 0;
+
+    const btn = document.getElementById('btn-enviar');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/pedido', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item, mesa, valor }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+    } catch (err) {
+      log({ nivel: 'error', mensagem: 'Erro ao enviar pedido: ' + err.message });
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function enviarTeste() {
+    const btn = document.getElementById('btn-teste');
+    btn.disabled = true;
+    try {
+      await fetch('/api/pedido/teste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantidade: 5 }),
+      });
+    } catch (err) {
+      log({ nivel: 'error', mensagem: 'Erro: ' + err.message });
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function log(entry) {
+    const stream = document.getElementById('log-stream');
+    const empty = stream.querySelector('.log-vazio');
+    if (empty) empty.remove();
+
+    const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+    const tagMap = {
+      producer: 'PRODUTOR',
+      kitchen: 'COZINHA',
+      payment: 'FINANCEIRO',
+      system: 'SISTEMA',
+      error: 'ERRO',
+    };
+
+    const line = document.createElement('div');
+    line.className = 'log-linha';
+    line.innerHTML =
+      '<span class="hora">' + time + '</span>' +
+      '<span class="tag ' + entry.nivel + '">' + (tagMap[entry.nivel] || 'INFO') + '</span>' +
+      '<span class="msg">' + entry.mensagem + '</span>';
+    stream.appendChild(line);
+    stream.scrollTop = stream.scrollHeight;
+
+    while (stream.children.length > 100) stream.removeChild(stream.firstChild);
+  }
+
+  function limparLogs() {
+    document.getElementById('log-stream').innerHTML =
+      '<div class="log-vazio">Logs limpos. Aguardando novos eventos...</div>';
+  }
+</script>
+</body>
+</html>

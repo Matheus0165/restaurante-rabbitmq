@@ -1,0 +1,12 @@
+{
+  "name": "restaurante-cozinha",
+  "version": "1.0.0",
+  "description": "Consumer: lê fila_cozinha, prepara e publica em fila_pagamento",
+  "main": "cozinha.js",
+  "scripts": {
+    "start": "node cozinha.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4"
+  }
+}

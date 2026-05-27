@@ -1,0 +1,14 @@
+{
+  "name": "restaurante-server",
+  "version": "1.0.0",
+  "description": "Frontend dashboard + API produtor (publica em fila_cozinha)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5"
+  }
+}

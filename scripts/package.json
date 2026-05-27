@@ -1,0 +1,8 @@
+{
+  "name": "restaurante-scripts",
+  "version": "1.0.0",
+  "description": "Scripts CLI para testar o sistema sem o frontend",
+  "dependencies": {
+    "amqplib": "^0.10.4"
+  }
+}

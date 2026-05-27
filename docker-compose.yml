@@ -1,0 +1,62 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-restaurante
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI (http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - restaurante-net
+
+  server:
+    build: ./server
+    container_name: restaurante-server
+    ports:
+      - "3000:3000"   # Frontend em http://localhost:3000
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      RABBITMQ_MGMT_URL: http://rabbitmq:15672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      PORT: 3000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - restaurante-net
+
+  cozinha:
+    build: ./cozinha
+    container_name: restaurante-cozinha
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - restaurante-net
+
+  financeiro:
+    build: ./financeiro
+    container_name: restaurante-financeiro
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - restaurante-net
+
+networks:
+  restaurante-net:
+    driver: bridge

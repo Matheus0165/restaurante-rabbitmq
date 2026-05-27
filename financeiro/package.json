@@ -1,0 +1,12 @@
+{
+  "name": "restaurante-financeiro",
+  "version": "1.0.0",
+  "description": "Consumer: lê fila_pagamento e processa a cobrança",
+  "main": "financeiro.js",
+  "scripts": {
+    "start": "node financeiro.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4"
+  }
+}
